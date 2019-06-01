@@ -4,22 +4,25 @@ Sketch of https://explainshell.com/ like output, in plain text
  $ python explain.py
 
 git diff-tree -M -r --name-status <commit>
-    └───┬───┘ ┣┛ ├┘ ┗━━━━━┳━━━━━┛ └──┬───┘
-┌───────┘     ┃  │        ┃          │
-│┏━━━━━━━━━━━━┛  │        ┃          │
-│┃┌──────────────┘        ┃          │
-│┃│┏━━━━━━━━━━━━━━━━━━━━━━┛          │
-│┃│┃┌────────────────────────────────┘
-└╂┼╂┼─ Compares the content and mode of
- ┃│┃│  blobs found via two tree objects
- ┗┿╋┿━ Detect renames
-  └╂┼─ recurse into subtrees
-   ┗┿━ Show only names and status of
-    │  changed files
+    └───┬───┘ ├┘ ├┘ └─────┬─────┘ └──┬───┘
+┌───────┘     │  │        │          │
+│┌────────────┘  │        │          │
+││┌──────────────┘        │          │
+│││┌──────────────────────┘          │
+││││┌────────────────────────────────┘
+└┼┼┼┼─ Compares the content and mode of blobs found via two tree objects
+ └┼┼┼─ Detect renames
+  └┼┼─ recurse into subtrees
+   └┼─ Show only names and status of changed files
     │           for example:
     │              M   foo.py
-    └─ show differences between this
-       commit and preceding one
+    └─ show differences between this commit and preceding one
+
+NB: if you're using a good font like `Menlo` with support for Unicode box-drawing
+characters, you can pass `usePens=True` to alternate each line bold/normal to
+make it easier to read.
+
+(With many fonts, the bold characters default to variable width.)
 """
 
 import itertools
@@ -40,7 +43,7 @@ def tokens(descs):
           in [norm(desc) for desc in descs]]
     return ts
 
-def withOffsets(ts):
+def decorate(ts, usePens=True):
     def offset(a, b):
         o = a['offset'] + a['length']
         po = o + math.ceil(b['length'] / 2)
@@ -62,10 +65,11 @@ def withOffsets(ts):
                  for (t,p)
                  in zip(withOffset, [init] + withOffset)]
 
+    pens = cycle([{'pen': False},
+                  {'pen': True}]) if usePens else repeat({'pen': False})
     withPens = [{**t, **p}
                 for (t,p)
-                in zip(withDelta,
-                       cycle([{'pen': False}, {'pen': True}]))]
+                in zip(withDelta, pens)]
     return withPens
 
 
@@ -252,11 +256,11 @@ def definitions(ts, width):
              in zip(chain([first], repeat(then)),
                     text)]))
 
-def explain(descs, width=80):
+def explain(descs, width=80, usePens=True):
     ts = tokens(descs)
     header(ts)
 
-    ts = list(withOffsets(ts))
+    ts = decorate(ts, usePens=usePens)
     markers(ts)
     converge(ts)
     definitions(ts, width)
@@ -278,5 +282,4 @@ descs = ['git',
          ' ',
          ('<commit>', 'show differences between this commit and preceding one')]
 
-explain(descs)
-
+explain(descs, usePens=True)
