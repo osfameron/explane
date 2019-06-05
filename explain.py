@@ -214,10 +214,11 @@ def converge(ts):
         heads = [box(('ns', l['pen']))
                  for l in left]
 
-        _ = boxer(right[0]['pen'])
+        _ = boxer(r['pen'])
         curve = _('ns') if span == 1 else _('se') + (_('ew') * (span-2)) + _('nw')
 
-        tails = [' ' * (r['pathDelta']-1) + box(('ns', r['pen']))
+        tails = [' ' * (r['pathDelta']-1)
+                 + box(('ns', r['pen']))
                  for r in rs]
 
         return ''.join([*heads,
