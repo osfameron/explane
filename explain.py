@@ -231,7 +231,7 @@ def resolve(existing, instructions, width=80):
 
     return (lines, nextState)
 
-def nmarkers(ts):
+def nmarkers(ts, usePens=False):
     def aux(t):
         (_,c,l,o) = t
         end = o + l - 1
@@ -239,12 +239,14 @@ def nmarkers(ts):
         return (o, mean, end, c, None)
 
     ps = list(map(aux, ts))
-    pens = cycle([False, True])
-    pre = flatten([[(start, pen, comment, None), (end, pen, comment, None)]
+    pens = cycle([False, True]) if usePens else repeat(False)
+    pre = flatten([[(start, pen, comment, None),
+                    (end, pen, comment, None)]
                     for ((start, _, end, comment, _), pen)
                     in zip(ps, pens)])
 
-    instructions = flatten([[(start, mean, comment, None), (end, mean, comment, None)]
+    instructions = flatten([[(start, mean, comment, None),
+                             (end, mean, comment, None)]
                             for (start, mean, end, comment, _)
                             in ps])
 
@@ -277,7 +279,7 @@ def resolve_list(lanes, instructions):
 def explain(descs):
     (header, ts) = ntokens(descs)
     print(header)
-    (markers, lanes) = nmarkers(ts)
+    (markers, lanes) = nmarkers(ts, usePens=True)
     print(markers)
     (left, lanes) = resolve_list(lanes, toleft_instructions(lanes))
     print(left)
