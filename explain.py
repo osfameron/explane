@@ -173,8 +173,6 @@ def resolve(existing, instructions, width=80):
         return list(filter(lambda a: type(a) is int, i))[-1]
     def pen(i):
         return next(filter(lambda a: type(a) is bool, i), False)
-    def text(i):
-        return next(filter(lambda a: type(a) is str, i), None)
     def go(i):
         return next(filter(lambda a: a is Ellipsis, i), None)
 
@@ -182,7 +180,7 @@ def resolve(existing, instructions, width=80):
         f = fst(instruction)
         t = dest(instruction)
         p = exp.get(f, pen(instruction))
-        tx = ext.get(f, text(instruction))
+        tx = ext.get(f, None)
         g = go(instruction)
         return (f,t,p,tx,g)
 
