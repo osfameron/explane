@@ -166,40 +166,27 @@ def resolve(existing, instructions, width=80):
 
     n = drawverticals('n', existing)
 
-    exp = {pos: pen for (pos,pen,*_) in existing}
-    ext = {pos: text for (pos,_,text,*_) in existing}
+    pens = {pos: pen for (pos,pen,*_) in existing}
+    texts = {pos: text for (pos,_,text,*_) in existing}
 
-    def dest(i):
-        return list(filter(lambda a: type(a) is int, i))[-1]
-    def pen(i):
-        return next(filter(lambda a: type(a) is bool, i), False)
-    def go(i):
-        return next(filter(lambda a: a is Ellipsis, i), None)
+    ew = overlay([drawhorizontal(i['pos'], i['to'], pens[i['pos']])
+                  for i
+                  in instructions
+                  if 'to' in i])
 
-    def normalise(instruction):
-        f = fst(instruction)
-        t = dest(instruction)
-        p = exp.get(f, pen(instruction))
-        tx = ext.get(f, None)
-        g = go(instruction)
-        return (f,t,p,tx,g)
-
-    normalised = [normalise(i) for i in instructions]
-
-    ew = overlay([drawhorizontal(a,b,pen)
-                  for (a,b,pen,*_)
-                  in normalised
-                  if a is not None and b is not None])
-
-    explicit = {fst(i) for i in normalised}
+    explicit = {i['pos'] for i in instructions}
     implicit = [(pos, *rest)
                 for (pos, *rest)
                 in existing
                 if not pos in explicit]
 
-    continuation = [(t,pen,comment)
-                    for (f,t,pen,comment,go) in normalised
-                    if not go]\
+    def cont(i):
+        f = i['pos']
+        t = i['to']
+        return (t, pens[f], texts[f])
+    continuation = [cont(i)
+                    for i in instructions
+                    if not 'go' in i]\
                    + implicit
 
     # sorted and merged paths
@@ -216,10 +203,10 @@ def resolve(existing, instructions, width=80):
     s = drawverticals('s', nextState)
     lines = overlay([n, ew, s])
 
-    gone = next(filter(go, normalised), None)
+    gone = next(filter(lambda i: 'go' in i, instructions), None)
     if gone:
         l = len(lines)
-        text = reflow(gone[3], width - l - 1)
+        text = reflow(texts[gone['pos']], width - l - 1)
         (then, _) = resolve(nextState, [])
         lines = ("\n".join(
                     [h+t
@@ -228,6 +215,12 @@ def resolve(existing, instructions, width=80):
                             text)]))
 
     return (lines, nextState)
+
+def move(f, t):
+    return {'pos': f, 'to': t}
+
+def go(f, t):
+    return {'pos': f, 'to': t, 'go': True}
 
 def nmarkers(ts, usePens=False):
     def aux(t):
@@ -243,8 +236,8 @@ def nmarkers(ts, usePens=False):
                     for ((start, _, end, comment, _), pen)
                     in zip(ps, pens)])
 
-    instructions = flatten([[(start, mean, comment, None),
-                             (end, mean, comment, None)]
+    instructions = flatten([[move(start, mean),
+                             move(end, mean)]
                             for (start, mean, end, comment, _)
                             in ps])
 
@@ -253,7 +246,7 @@ def nmarkers(ts, usePens=False):
 def toleft_instructions(lanes):
     def aux(lanes, idx):
         pos = lanes[idx][0]
-        return (pos, idx)
+        return move(pos, idx)
 
     return [[aux(lanes, idx)] for idx in range(0, len(lanes))]
 
@@ -261,7 +254,7 @@ def define_instructions(lanes):
     l = len(lanes) + 1
     def aux(lane):
         pos = lane[0]
-        return (pos, l, ...)
+        return go(pos, l)
 
     return [[aux(lane)] for lane in lanes]
 
