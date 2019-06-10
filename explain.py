@@ -29,9 +29,10 @@ import itertools
 import math
 from itertools import (accumulate, chain, repeat, cycle, groupby, zip_longest)
 from functools import reduce
-from textwrap import wrap
+from textwrap import (wrap, dedent)
 from operator import itemgetter
 import string
+import re
 
 def ntokens(descs):
     def norm(desc):
@@ -277,5 +278,55 @@ def explain(descs):
     (define, lanes) = resolve_list(lanes, define_instructions(lanes))
     print(define)
 
+def parse1(string):
+    (command, markers, *data) = string.split("\n")
+    
+    groups = groupby(zip(command, markers), key=itemgetter(1))
+
+    def aux(g):
+        group = g[0]
+        command = ''.join(list(map(itemgetter(0), g[1])))
+        return (group, command)
+
+    print([aux(g) for g in groups])
 
 explain(descs)
+
+def parseres(string, rxs):
+    def aux(acc, token):
+        last = acc[-1][-1]
+        rx = re.escape(token)
+        match = re.compile(rx).search(string, last)
+        if match:
+            return acc + [(token, match.start(), match.end())]
+        else:
+            raise Exception("BAD PROGRAMMER")
+
+    slices = reduce(aux, rxs, [(0,)])[1:]
+
+    t = len(string)
+    def fill(i, ss):
+        if i == t:
+            return []
+        if not ss:
+            return [(string[i:t], i,t)]
+        [(token, s,e),*rest] = ss
+        if i == s:
+            return [(token, s,e)] + fill(e, rest)
+        else:
+            return [(string[i:s], i,s), (token, s,e)] + fill(e, rest)
+
+    return fill(0, slices)
+
+def parse(string):
+    ...
+
+parse("""\
+      git log -m thingy
+      # git
+      version control ting
+
+      # log
+      do some logging innit""")
+
+print(parseres("git log -m thingy", ["git", "log", "-m"]))
