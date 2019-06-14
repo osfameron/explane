@@ -160,7 +160,7 @@ def drawhorizontal(a,b,pen):
 def drawverticals(point, items):
     return overlay([drawat(pos, box((point, pen))) for (pos,pen,*_) in items])
 
-def resolve(existing, instructions, width=80):
+def resolve(existing, instructions, width=65):
 
     fst = itemgetter(0)
     snd = itemgetter(1)
@@ -209,10 +209,12 @@ def resolve(existing, instructions, width=80):
         l = len(lines)
         text = reflow(texts[gone['pos']], width - l - 1)
         (then, _) = resolve(nextState, [])
+        first = lines + ' '
+        then = then + ' ' * (len(first) - len(then))
         lines = ("\n".join(
                     [h+t
                      for (h,t)
-                     in zip(chain([lines + ' '], repeat(then + '   ')),
+                     in zip(chain([first], repeat(then)),
                             text)]))
 
     return (lines, nextState)
@@ -329,4 +331,4 @@ parse("""\
       # log
       do some logging innit""")
 
-print(parseres("git log -m thingy", ["git", "log", "-m"]))
+# print(parseres("git log -m thingy", ["git", "log", "-m"]))
