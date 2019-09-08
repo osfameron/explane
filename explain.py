@@ -34,23 +34,39 @@ from operator import itemgetter
 import string
 import re
 
-def ntokens(descs):
-    def norm(desc):
-        (t,c) = desc if type(desc) is tuple else (desc, None)
-        return (t, c, len(t))
+'''
+Take a list of descriptions, which are either a literal string or a tuple of
+string + description, and return a list of tuples of
+(string, desc, length, offset)
 
-    raw = [norm(desc) for desc in descs]
-    header = ''.join([item[0] for item in raw])
+e.g.
+    ["ls ",
+     ("*.py", "wildcard search for files that end with `.py`")]
+
+would become:
+    [("ls ", None, 3, 0),
+     ("*.py", "wildcard search for files that end with `.py`", 4, 3)]
+'''
+def normalise_tokens(tokens):
+    def norm(token):
+        (t,c) = token if type(token) is tuple else (token, None)
+        l = len(t)
+        # return tuple of token, comment, length, and a dummy offset of 0
+        return (t,c,l,0)
 
     def offset(a, b):
-        return (*b, a[3] + a[2])
+        (_, _, alength, aoffset) = a
+        return (*b[0:3], aoffset + alength)
 
-    ri = [(*raw[0], 0)] + raw[1:]
-    withOffsets = list(accumulate(ri, offset))
+    hasComment = itemgetter(1)
 
-    comment = itemgetter(1)
+    ntokens = [norm(desc) for desc in descs]
+    header = ''.join([ntoken[0] for ntoken in ntokens])
 
-    return (header, list(filter(comment, withOffsets)))
+    lanes = list(filter(hasComment,
+                        accumulate(ntokens, offset)))
+
+    return (header, lanes)
 
 boxes = {
         'ew': '─', 'EW': '━', 'ns': '│', 'NS': '┃', 'se': '┌',
@@ -270,8 +286,8 @@ def resolve_list(lanes, instructions):
     (output, lanes) = reduce(aux, instructions, ([], lanes))
     return ('\n'.join(output), lanes)
 
-def explain(descs):
-    (header, ts) = ntokens(descs)
+def explain(tokens):
+    (header, ts) = normalise_tokens(tokens)
     print(header)
     (markers, lanes) = nmarkers(ts, usePens=True)
     print(markers)
