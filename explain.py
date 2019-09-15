@@ -241,7 +241,8 @@ def move(f, t):
 def go(f, t):
     return {'pos': f, 'to': t, 'go': True}
 
-def nmarkers(ts, usePens=False):
+def nmarkers(ts):
+    usePens = True # TODO pass in
     def aux(t):
         (_,c,l,o) = t
         end = o + l - 1
@@ -277,6 +278,12 @@ def define_instructions(lanes):
 
     return [[aux(lane)] for lane in lanes]
 
+def toleft(lanes):
+    return resolve_list(lanes, toleft_instructions(lanes))
+
+def define(lanes):
+    return resolve_list(lanes, define_instructions(lanes))
+
 def resolve_list(lanes, instructions):
     def aux(output_lanes, i):
         (o, lanes) = output_lanes
@@ -286,15 +293,27 @@ def resolve_list(lanes, instructions):
     (output, lanes) = reduce(aux, instructions, ([], lanes))
     return ('\n'.join(output), lanes)
 
+def unit(data):
+    return ("", data)
+
+def bind(t, f):
+    (o, x) = t
+    (o2, x2) = f(x)
+    return (o + o2 + "\n", x2)
+
+def sequence(t, fs):
+    return reduce(bind, fs, t)
+
+def run(t, fs):
+    (output, _) = sequence(unit(t), fs)
+    print(output)
+
 def explain(tokens):
-    (header, ts) = normalise_tokens(tokens)
-    print(header)
-    (markers, lanes) = nmarkers(ts, usePens=True)
-    print(markers)
-    (left, lanes) = resolve_list(lanes, toleft_instructions(lanes))
-    print(left)
-    (define, lanes) = resolve_list(lanes, define_instructions(lanes))
-    print(define)
+    run(tokens,
+        [normalise_tokens,
+         nmarkers,
+         toleft,
+         define ])
 
 def parse1(string):
     (command, markers, *data) = string.split("\n")
